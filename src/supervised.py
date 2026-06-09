@@ -1,3 +1,11 @@
+"""
+supervised.py
+-------------
+Contém a classe Catapulta, sendo a classe principal do projeto, responsável por armazenar os datasets carregados e fornecer métodos para acessar esses dados.
+
+Aprofundando, ela também contém métodos como o modelo supervisionado que será utilizado, função para ajuste de curvas e otimização, exploração breve de todos os dados armazenados, e etc.
+"""
+
 import sys
 from pathlib import Path
 
@@ -11,7 +19,7 @@ from src.__config__ import PATHS
 DATA_DIR = PATHS.data
 
 class Catapulta:
-    """Classe principal do projeto, responsável por orquestrar o processo de carregamento e limpeza dos dados."""
+    """Classe principal do projeto, responsável por servir como a pipeline principal para o fluxo de trabalho."""
     def __init__(self):
         self.fonts = []
         self.datasets = {}
