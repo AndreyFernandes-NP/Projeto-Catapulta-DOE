@@ -1,9 +1,9 @@
 """
 data_loader.py
 --------------
-Responsável por carregar os dados brutos além de fornecer funções auxiliares para manipulação de DataFrames e pré-processamento básico.
+Responsável por carregar os dados brutos além de fornecer funções auxiliares para manipulação de DataFrames.
 
-Os dados carregados devem vir diretamente de data/catapulta_doe.csv.
+Os dados carregados devem vir diretamente de root/data.
 """
 
 import sys
@@ -19,13 +19,9 @@ from src.__config__ import PATHS
 DATA_DIR = PATHS.data
 
 encodings = ["utf-8", "utf-8-sig", "latin1", "iso-8859-1", "cp1252"]
-na_values = ['nan', '?', 'null', '0', '-']
 separators = [";", ","]
 
 # Utils
-
-def has_replacement_char(df: pd.DataFrame) -> bool:
-    return any("�" in str(col) for col in df.columns)
 
 def get_csv() -> list[dict]:
     caminho = DATA_DIR
@@ -48,14 +44,10 @@ def careful_load_csv(path: Path, sep: str | None = None) -> pd.DataFrame:
     for encoding in encodings:
         for separator in separators:
             try:
-                df = pd.read_csv(path, sep=separator, encoding=encoding, low_memory=False, na_values=na_values)
+                df = pd.read_csv(path, sep=separator, encoding=encoding, low_memory=False)
 
                 if len(df.columns) <= 1:
                     errors.append(f"encoding={encoding}, sep={repr(separator)} → apenas {len(df.columns)} coluna(s)")
-                    continue
-
-                if has_replacement_char(df):
-                    errors.append(f"encoding={encoding}, sep={repr(separator)} → caractere inválido nas colunas: {list(df.columns)}")
                     continue
 
                 #print(f"[load] '{path.name}' lido com encoding={encoding}, sep={repr(separator)}")
