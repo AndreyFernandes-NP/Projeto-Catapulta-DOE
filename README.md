@@ -13,11 +13,14 @@ Feito para a matéria de Programação para I.A: Python, da PUC-SP.
 Projeto-Catapulta-DOE/
 ├── data/
 |   ├── catapulta_doe.csv
+├── notebooks/
 ├── src/
+|   ├── __config__.py
 |   ├── __init__.py
 |   ├── data_loader.py
-|   ├── supervised.py
+|   ├── main.py
 |   ├── optimaztion.py
+|   ├── supervised.py
 |   └── visualization.py
 ├── requirements.txt
 └── README.md
@@ -41,5 +44,9 @@ Projeto-Catapulta-DOE/
 3. **Instale as dependencias**
    ```bash
    pip install -r requirements.txt
+    ```
+4. **Execute o projeto**
+   ```bash
+   python -m src
     ```
 ****
