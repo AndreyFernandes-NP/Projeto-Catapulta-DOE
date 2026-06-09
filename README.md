@@ -45,4 +45,8 @@ Projeto-Catapulta-DOE/
    ```bash
    pip install -r requirements.txt
     ```
+4. **Execute o projeto**
+   ```bash
+   python -m src
+    ```
 ****
