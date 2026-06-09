@@ -9,6 +9,7 @@ Aprofundando, ela também contém métodos como o modelo supervisionado que ser�
 import sys
 from pathlib import Path
 
+from typing import Any
 import pandas as pd
 import numpy as np
 
@@ -24,6 +25,13 @@ class Catapulta:
     def __init__(self):
         self.fonts: list[str] = []
         self.datasets: dict[str, pd.DataFrame] = {}
+
+        self.features: list[str] = []
+        # TODO: Definir entre setar o modelo aqui ou através de uma função específica/classe distinta para evitar acoplamento excessivo.
+        self.model: Any = None
+        # As métricas e predições são armazenadas como listas para permitir comparações da eficácia do mesmo modelo entre diferentes dataframes
+        self.metrics: list[dict[str, Any]] = []
+        self.predictions: list[pd.DataFrame] | None = None
 
     def get_fonts(self) -> list[str]:
         return self.fonts
@@ -48,11 +56,36 @@ class Catapulta:
             del self.datasets[nome]
             self.fonts.remove(nome)
     
+    def load_df(self, nome: str) -> pd.DataFrame:
+        if nome not in self.datasets:
+            print(f"[Erro] Dataset '{nome}' não encontrado.")
+            return pd.DataFrame()
+
+        return self.datasets[nome]
+    
+    def analyze_datasets(self) -> None:
+        if not self.datasets:
+            print("[Aviso] Nenhum dataset armazenado para análise.")
+            return
+        
+        for nome, df in self.datasets.items():
+            if df.empty:
+                print(f"[Aviso] O dataset '{nome}' está vazio. Pulando análise.")
+                continue
+            
+            print(f"Análise do dataset '{nome}':")
+            print(f"- Número de linhas: {len(df)}")
+            print(f"- Número de colunas: {len(df.columns)}")
+            print(f"- Colunas: {list(df.columns)}")
+            print(f"- Tipos de dados:\n{df.dtypes}")
+            print(f"- Estatísticas descritivas:\n{df.describe(include='all')}")
+            print()
+    
     @property
     def parameters(self) -> np.ndarray:
         return self.get_parameters()
 
-    def get_parameters(self, type='first') -> np.ndarray:
+    def get_parameters(self, type: str ='first') -> np.ndarray:
         if not self.datasets:
             print("[Aviso] Nenhum dataset armazenado. Parâmetros indisponíveis.")
             return np.array([])
