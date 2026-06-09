@@ -17,8 +17,8 @@ Projeto-Catapulta-DOE/
 ├── src/
 |   ├── __config__.py
 |   ├── __init__.py
+|   ├── __main__.py
 |   ├── data_loader.py
-|   ├── main.py
 |   ├── optimaztion.py
 |   ├── supervised.py
 |   └── visualization.py
