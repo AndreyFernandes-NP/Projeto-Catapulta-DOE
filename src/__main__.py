@@ -25,3 +25,4 @@ if __name__ == "__main__":
             print(f"Erro ao carregar '{fonte['nome']}': {e}")
     
     print(f"Fontes disponíveis: {cat_cls.get_fonts()}")
+    print(f"Parâmetros: {cat_cls.parameters}") # cat_cls.get_parameters() também funciona caso queira pegar de um tipo específico além do 'first' padrão
