@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.__config__ import PATHS
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
 
 DATA_DIR = PATHS.data
 
@@ -25,13 +27,24 @@ class Catapulta:
     def __init__(self):
         self.fonts: list[str] = []
         self.datasets: dict[str, pd.DataFrame] = {}
+        self.polynomials: dict[str, np.ndarray] = {}
 
         self.features: list[str] = []
-        # TODO: Definir entre setar o modelo aqui ou através de uma função específica/classe distinta para evitar acoplamento excessivo.
         self.model: Any = None
         # As métricas e predições são armazenadas como listas para permitir comparações da eficácia do mesmo modelo entre diferentes dataframes
         self.metrics: list[dict[str, Any]] = []
         self.predictions: list[pd.DataFrame] | None = None
+
+    # TODO: Se estiver se sentindo romântico, dá pra fazer (model) como parâmetro e fazer um self.model = model(**hyperparameters)
+    # Só é preciso fazer o import dos modelos no __main__ (ou onde for chamar a função) ao invés daqui.
+    def build_model(self, hyperparameters) -> bool:
+        try:
+            self.model = LinearRegression(**hyperparameters)
+        except Exception as e:
+            print(f"[Erro] Ocorreu uma falha durante a construção do modelo: {e}")
+            return False
+        
+        return True
 
     def get_fonts(self) -> list[str]:
         return self.fonts
@@ -48,6 +61,16 @@ class Catapulta:
 
         if nome not in self.fonts:
             self.fonts.append(nome)
+    
+    def store_polynomial(self, nome: str, poly: np.ndarray) -> None:
+        if poly is None or poly.size == 0:
+            print(f"[Aviso] O polinômio '{nome}' está vazio. Ele não será salvo.")
+            return
+        
+        if nome in self.polynomials:
+            print(f"[Aviso] Substituindo polinômio '{nome}' já existente.")
+        
+        self.polynomials[nome] = poly
     
     def drop_empty_datasets(self) -> None:
         empty_fonts = [nome for nome, df in self.datasets.items() if df.empty]
@@ -80,6 +103,12 @@ class Catapulta:
             print(f"- Tipos de dados:\n{df.dtypes}")
             print(f"- Estatísticas descritivas:\n{df.describe(include='all')}")
             print()
+    
+    def curve_adjustment(self, df: pd.DataFrame, degree: int) -> np.ndarray:
+        poly = PolynomialFeatures(degree)
+        df_adj = poly.fit_transform(df.copy())
+
+        return df_adj
     
     @property
     def parameters(self) -> np.ndarray:
