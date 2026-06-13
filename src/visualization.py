@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-
 FEATURES = [
     "release_angle",
     "firing_angle",
@@ -29,19 +28,10 @@ def plot_correlacao(df: pd.DataFrame) -> None:
     """
 
     plt.figure(figsize=(10, 6))
-
-    sns.heatmap(
-        df.corr(numeric_only=True),
-        annot=True,
-        cmap="coolwarm"
-    )
-
+    sns.heatmap(df.corr(numeric_only=True), annot=True,cmap="coolwarm")
     plt.title("Matriz de Correlação")
-
     plt.tight_layout()
-
     plt.show()
-
 
 def plot_histogramas(df: pd.DataFrame) -> None:
     """
@@ -49,11 +39,8 @@ def plot_histogramas(df: pd.DataFrame) -> None:
     """
 
     df.hist(figsize=(12, 8))
-
     plt.tight_layout()
-
     plt.show()
-
 
 def plot_scatterplots(df: pd.DataFrame) -> None:
     """
@@ -62,21 +49,11 @@ def plot_scatterplots(df: pd.DataFrame) -> None:
     """
 
     for feature in FEATURES:
-
         plt.figure(figsize=(6, 4))
-
-        sns.scatterplot(
-            data=df,
-            x=feature,
-            y=TARGET
-        )
-
+        sns.scatterplot(data=df, x=feature, y=TARGET)
         plt.title(f"{feature} vs {TARGET}")
-
         plt.tight_layout()
-
         plt.show()
-
 
 def plot_boxplots(df: pd.DataFrame) -> None:
     """
@@ -87,19 +64,10 @@ def plot_boxplots(df: pd.DataFrame) -> None:
     for feature in FEATURES:
 
         plt.figure(figsize=(6, 4))
-
-        sns.boxplot(
-            data=df,
-            x=feature,
-            y=TARGET
-        )
-
+        sns.boxplot(data=df, x=feature, y=TARGET)
         plt.title(f"Boxplot: {feature} vs {TARGET}")
-
         plt.tight_layout()
-
         plt.show()
-
 
 def plot_interacoes(df: pd.DataFrame) -> None:
     """
@@ -107,19 +75,9 @@ def plot_interacoes(df: pd.DataFrame) -> None:
     """
 
     plt.figure(figsize=(7, 5))
-
-    sns.scatterplot(
-        data=df,
-        x="firing_angle",
-        y=TARGET,
-        hue="release_angle",
-        s=80
-    )
-
+    sns.scatterplot(data=df, x="firing_angle", y=TARGET, hue="release_angle", s=80)
     plt.title("Interação: firing_angle x release_angle")
-
     plt.tight_layout()
-
     plt.show()
 
 
@@ -129,44 +87,20 @@ def plot_replicas(df: pd.DataFrame) -> None:
     """
 
     plt.figure(figsize=(6, 4))
-
-    sns.boxplot(
-        data=df,
-        x="replica",
-        y=TARGET
-    )
-
+    sns.boxplot( data=df,x="replica", y=TARGET)
     plt.title("Variabilidade entre Réplicas")
-
     plt.tight_layout()
-
     plt.show()
 
-
-def plot_top_resultados(
-    df: pd.DataFrame,
-    top_n: int = 10
-) -> None:
+def plot_top_resultados(df: pd.DataFrame, top_n: int = 10) -> None:
     """
     Exibe os melhores resultados do experimento.
     """
 
-    top = (
-        df
-        .sort_values(TARGET, ascending=False)
-        .head(top_n)
-    )
+    top = (df.sort_values(TARGET, ascending=False).head(top_n))
 
     plt.figure(figsize=(10, 5))
-
-    sns.barplot(
-        data=top,
-        x="ensaio",
-        y=TARGET
-    )
-
+    sns.barplot(data=top, x="ensaio", y=TARGET)
     plt.title(f"Top {top_n} Ensaios")
-
     plt.tight_layout()
-
     plt.show()
