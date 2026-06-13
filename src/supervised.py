@@ -37,7 +37,7 @@ class Catapulta:
 
     # TODO: Se estiver se sentindo romântico, dá pra fazer (model) como parâmetro e fazer um self.model = model(**hyperparameters)
     # Só é preciso fazer o import dos modelos no __main__ (ou onde for chamar a função) ao invés daqui.
-    def build_model(self, hyperparameters) -> bool:
+    def build_model(self, **hyperparameters) -> bool:
         try:
             self.model = LinearRegression(**hyperparameters)
         except Exception as e:
