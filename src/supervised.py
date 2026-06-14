@@ -45,9 +45,17 @@ class Catapulta:
             return False
         
         return True
+    
+    def create_polynomial(self, df: pd.DataFrame, degree: int) -> np.ndarray | None:
+        try:
+            poly = PolynomialFeatures(degree)
+            df_adj = poly.fit_transform(df.copy())
+            return df_adj
+        
+        except Exception as e:
+            print(f"[Erro] Ocorreu uma falha na tentativa de criação do polimônio: {e}")
 
-    def get_fonts(self) -> list[str]:
-        return self.fonts
+        return None
 
     def store_dataset(self, nome: str, dataframe: pd.DataFrame) -> None:
         if dataframe.empty:
@@ -62,7 +70,7 @@ class Catapulta:
         if nome not in self.fonts:
             self.fonts.append(nome)
     
-    def store_polynomial(self, nome: str, poly: np.ndarray) -> None:
+    def store_polynomial(self, nome: str, poly: np.ndarray | None) -> None:
         if poly is None or poly.size == 0:
             print(f"[Aviso] O polinômio '{nome}' está vazio. Ele não será salvo.")
             return
@@ -71,6 +79,31 @@ class Catapulta:
             print(f"[Aviso] Substituindo polinômio '{nome}' já existente.")
         
         self.polynomials[nome] = poly
+    
+    def get_fonts(self) -> list[str]:
+        return self.fonts
+    
+    def get_dataset(self, nome: str) -> pd.DataFrame | None:
+        if nome in self.datasets:
+            return self.datasets[nome]
+        else:
+            print(f"[Aviso] Dataset '{nome}' não encontrado na lista de datasets.")
+        return None
+    
+    def get_polynomial(self, nome: str, **poly_params) -> np.ndarray | None:
+        if nome in self.polynomials:
+            return self.polynomials[nome]
+        else:
+            print(f"[Aviso] Polinômio do dataset '{nome}' não encontrado na lista de polinômios, tentando criação.")
+            poly = self.create_polynomial(**poly_params) if poly_params else None
+
+            if poly is not None:
+                self.store_polynomial(nome, poly)
+                return poly
+            else:
+                if not poly_params: print(f"[Aviso] Não foi possível criar o polinômio para '{nome}', a função não recebeu parâmetros para tal.")
+
+        return None
     
     def drop_empty_datasets(self) -> None:
         empty_fonts = [nome for nome, df in self.datasets.items() if df.empty]
@@ -104,11 +137,13 @@ class Catapulta:
             print(f"- Estatísticas descritivas:\n{df.describe(include='all')}")
             print()
     
-    def curve_adjustment(self, df: pd.DataFrame, degree: int) -> np.ndarray:
-        poly = PolynomialFeatures(degree)
-        df_adj = poly.fit_transform(df.copy())
+    def curve_adjustment(self, nome: str, df: pd.DataFrame, poly_degree: int) -> bool:
+        print(f"[Execução] Criando polinômio para '{nome}'...")
+        df_adj = self.create_polynomial(df, poly_degree)
+        self.store_polynomial(nome, df_adj)
 
-        return df_adj
+        print(f"[Execução] Polinômio de '{nome}' criado e salvo diretamente.")
+        return True
     
     @property
     def parameters(self) -> np.ndarray:

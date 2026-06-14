@@ -27,9 +27,7 @@ if __name__ == "__main__":
             print(f"[Execução] '{fonte['nome']}' carregado com {len(df)} linhas e {len(df.columns)} colunas.")
 
             print(f"[Execução] Executando ajuste de curva...")
-            df_adj = cat_cls.curve_adjustment(df, 2)
-            cat_cls.store_polynomial(fonte["nome"], df_adj)
-            print(f"[Execução] Ajuste executado, polinômio de '{fonte["nome"]}' criado e salvo.")
+            cat_cls.curve_adjustment(fonte["nome"], df, 2)
         except Exception as e:
             print(f"[Erro] Ocorreu uma falha durante o processamento do dataset '{fonte['nome']}': {e}")
     
