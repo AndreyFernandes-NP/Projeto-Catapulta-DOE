@@ -12,13 +12,26 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 import numpy as np
+import src.visualization as viz
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.__config__ import PATHS
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+FEATURES = [
+    "release_angle",
+    "firing_angle",
+    "cup_elevation",
+    "pin_elevation",
+    "bungee_elevation"
+]
+
+TARGET = "distancia"
 
 DATA_DIR = PATHS.data
 
@@ -27,58 +40,46 @@ class Catapulta:
     def __init__(self):
         self.fonts: list[str] = []
         self.datasets: dict[str, pd.DataFrame] = {}
-        self.polynomials: dict[str, np.ndarray] = {}
+        # Nossas métricas e predições vão diretamente para o datasets_data com o nome do dataset que foi feito a comparação, só chegar a estrutura abaixo e usar um .get().
+        self.datasets_data: dict[str, Any] = {}
 
         self.features: list[str] = []
+        self.target_col: str = ""
+        self.degree: int = 2
         self.model: Any = None
-        # As métricas e predições são armazenadas como listas para permitir comparações da eficácia do mesmo modelo entre diferentes dataframes
-        self.metrics: list[dict[str, Any]] = []
-        self.predictions: list[pd.DataFrame] | None = None
+        self.visualization: bool = True
 
     # TODO: Se estiver se sentindo romântico, dá pra fazer (model) como parâmetro e fazer um self.model = model(**hyperparameters)
     # Só é preciso fazer o import dos modelos no __main__ (ou onde for chamar a função) ao invés daqui.
     def build_model(self, **hyperparameters) -> bool:
         try:
-            self.model = LinearRegression(**hyperparameters)
+            self.features = FEATURES
+            self.target_col = TARGET
+            self.model = PolynomialFeatures(**hyperparameters)
         except Exception as e:
             print(f"[Erro] Ocorreu uma falha durante a construção do modelo: {e}")
             return False
         
         return True
-    
-    def create_polynomial(self, df: pd.DataFrame, degree: int) -> np.ndarray | None:
-        try:
-            poly = PolynomialFeatures(degree)
-            df_adj = poly.fit_transform(df.copy())
-            return df_adj
-        
-        except Exception as e:
-            print(f"[Erro] Ocorreu uma falha na tentativa de criação do polimônio: {e}")
 
-        return None
-
-    def store_dataset(self, nome: str, dataframe: pd.DataFrame) -> None:
+    def store_dataset(self, name: str, dataframe: pd.DataFrame) -> None:
         if dataframe.empty:
-            print(f"[Aviso] O dataset '{nome}' está vazio. Ele não será salvo.")
+            print(f"[Aviso] O dataset '{name}' está vazio. Ele não será salvo.")
             return
         
-        if nome in self.datasets:
-            print(f"[Aviso] Substituindo dataset '{nome}' já existente.")
+        if name in self.datasets:
+            print(f"[Aviso] Substituindo dataset '{name}' já existente.")
 
-        self.datasets[nome] = dataframe
+        self.datasets[name] = dataframe
 
-        if nome not in self.fonts:
-            self.fonts.append(nome)
+        if name not in self.fonts:
+            self.fonts.append(name)
     
-    def store_polynomial(self, nome: str, poly: np.ndarray | None) -> None:
-        if poly is None or poly.size == 0:
-            print(f"[Aviso] O polinômio '{nome}' está vazio. Ele não será salvo.")
-            return
-        
-        if nome in self.polynomials:
-            print(f"[Aviso] Substituindo polinômio '{nome}' já existente.")
-        
-        self.polynomials[nome] = poly
+    def store_data(self, name: str, data) -> None:        
+        if name in self.datasets_data:
+            print(f"[Aviso] Substituindo dados de treinamento para '{name}'.")
+
+        self.datasets_data[name] = data
     
     def get_fonts(self) -> list[str]:
         return self.fonts
@@ -90,20 +91,22 @@ class Catapulta:
             print(f"[Aviso] Dataset '{nome}' não encontrado na lista de datasets.")
         return None
     
-    def get_polynomial(self, nome: str, **poly_params) -> np.ndarray | None:
-        if nome in self.polynomials:
-            return self.polynomials[nome]
-        else:
-            print(f"[Aviso] Polinômio do dataset '{nome}' não encontrado na lista de polinômios, tentando criação.")
-            poly = self.create_polynomial(**poly_params) if poly_params else None
+    def get_X_y(self, name: str, df: pd.DataFrame):
+        if TARGET not in df.columns:
+            print(f"[Erro] Coluna alvo '{TARGET}' não encontrada no dataframe.")
+            return None, None
+        
+        feature_cols = FEATURES
+        missing_cols = [col for col in feature_cols if col not in df.columns]
 
-            if poly is not None:
-                self.store_polynomial(nome, poly)
-                return poly
-            else:
-                if not poly_params: print(f"[Aviso] Não foi possível criar o polinômio para '{nome}', a função não recebeu parâmetros para tal.")
+        if missing_cols:
+            print(f"[Erro] Features ausentes no dataframe '{name}': {missing_cols}")
+            return None, None
+        
+        X = df[feature_cols].to_numpy(dtype=float)
+        y = df[TARGET].to_numpy(dtype=float)
 
-        return None
+        return X, y
     
     def drop_empty_datasets(self) -> None:
         empty_fonts = [nome for nome, df in self.datasets.items() if df.empty]
@@ -129,21 +132,13 @@ class Catapulta:
                 print(f"[Aviso] O dataset '{nome}' está vazio. Pulando análise.")
                 continue
             
-            print(f"Análise do dataset '{nome}':")
+            print(f"[Info] Análise do dataset '{nome}':")
             print(f"- Número de linhas: {len(df)}")
             print(f"- Número de colunas: {len(df.columns)}")
             print(f"- Colunas: {list(df.columns)}")
             print(f"- Tipos de dados:\n{df.dtypes}")
             print(f"- Estatísticas descritivas:\n{df.describe(include='all')}")
             print()
-    
-    def curve_adjustment(self, nome: str, df: pd.DataFrame, poly_degree: int) -> bool:
-        print(f"[Execução] Criando polinômio para '{nome}'...")
-        df_adj = self.create_polynomial(df, poly_degree)
-        self.store_polynomial(nome, df_adj)
-
-        print(f"[Execução] Polinômio de '{nome}' criado e salvo diretamente.")
-        return True
     
     @property
     def parameters(self) -> np.ndarray:
@@ -196,3 +191,141 @@ class Catapulta:
 
         print("[Aviso] Nenhum dataset válido encontrado. Parâmetros indisponíveis.")
         return np.array([])
+    
+    def adjust_model(self, df_name: str) -> None:
+        print(f"[Execução] Iniciando configuração de ajustes de modelo...")
+
+        if df_name not in self.datasets:
+            print(f"[Erro] Não foi possível carregar o dataset '{df_name}', essa função deve ser chamada após o load/store dos datasets.")
+            return None
+        
+        df = self.datasets[df_name]
+
+        X, y = self.get_X_y(df_name, df)
+
+        if X is None or y is None:
+            print(f"[Erro] Execução de ajuste interrompida pela ausência dos valores de treinamento 'X' e 'y'.")
+            return None
+
+        X_train, X_test, y_train, y_teste = train_test_split(X, y, test_size=0.2, random_state=42)
+        scaler = StandardScaler()
+
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
+        Phi_train = self.model.fit_transform(X_train_scaled)
+        Phi_test = self.model.transform(X_test_scaled)
+        polynomial_feature_names = self.model.get_feature_names_out(FEATURES)
+
+        theta, residuals, rank, singular_values = np.linalg.lstsq(Phi_train, y_train, rcond=None)
+
+        data = {
+            "feature_cols": self.features,
+            "polynomial_feature_names": polynomial_feature_names,
+            "X_train": X_train,
+            "X_test": X_test,
+            "y_train": y_train,
+            "y_test": y_teste,
+            "scaler": scaler,
+            "poly": self.model,
+            "phi_train": Phi_train,
+            "phi_test": Phi_test,
+            "theta": theta,
+            "residuals": residuals,
+            "rank": rank,
+            "singular_values": singular_values,
+            "is_adjusted": True
+        }
+
+        self.store_data(df_name, data)
+
+        print(
+            f"\n[Ajuste] O modelo polinômial para o dataset '{df_name}' está pronto."
+            f"\n[Ajuste] Total de features: {len(self.features)} "
+            f"| Parâmetros: {Phi_train.shape[1]} "
+            f"| Rank: {rank}.\n"
+        )
+
+    def run_model(self, df_name: str) -> dict:
+        print(f"[Execução] Executando modelo...")
+
+        if df_name not in self.datasets:
+            print(f"[Erro] Dataset '{df_name}' não foi carregado nem salvo.")
+            return {}
+        
+        data = self.datasets_data[df_name]
+        if not data.get("is_adjusted", False):
+            print(f"[Erro] O modelo para '{df_name}' ainda não foi ajustado. Execute primeiro a função adjust_model('{df_name}') antes de rodar.")
+            return {}
+        
+        Phi_test = data["phi_test"]
+        y_test = data["y_test"]
+        theta = data["theta"]
+
+        y_pred = Phi_test @ theta
+
+        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+        mae = mean_absolute_error(y_test, y_pred)
+        r2 = r2_score(y_test, y_pred)
+
+        metrics = {
+            "dataset": df_name,
+            "degree": self.model.get_params().get("degree", 2),
+            "n_features": len(data["feature_cols"]),
+            "n_params": data["phi_train"].shape[1],
+            "rmse": rmse,
+            "mae": mae,
+            "r2": r2
+        }
+
+        data["y_pred"] = y_pred
+        data["metrics"] = metrics
+
+        print(
+            f"[Execução] Resultado para '{df_name}':"
+            f"| R²={r2:.4f} "
+            f"| MAE={mae:.4f} "
+            f"| RMSE={rmse:.4f}"
+        )
+
+        if self.visualization:
+            self.plot_model_analysis(df_name)
+        
+        return metrics
+    
+    def run_all(self) -> pd.DataFrame:
+        all_metrics = []
+
+        for df_name in self.datasets.keys():
+            metrics = self.run_model(df_name)
+            all_metrics.append(metrics)
+        
+        results_df = pd.DataFrame(all_metrics)
+        
+        if self.visualization:
+            self.plot_results_comparison(results_df)
+        
+        return results_df
+    
+    def plot_model_analysis(self, dataset_name: str) -> None:
+        import src.visualization as viz
+
+        data = self.datasets_data[dataset_name]
+
+        print(f"[PLOT] Análise do modelo: {dataset_name}")
+
+        viz.plot_real_vs_prediction(y_real=data["y_test"], y_pred=data["y_pred"], title=f"Valores Reais vs Preditos - {dataset_name}")
+        viz.plot_residuos(y_pred=data["y_pred"], residuals=data["residuals"], title=f"Resíduos vs Predições - {dataset_name}")
+        viz.plot_distribuicao_residuos(residuals=data["residuals"], title=f"Distribuição dos Resíduos - {dataset_name}")
+        viz.plot_coeficientes(theta=data["theta"], feature_names=data["polynomial_feature_names"], top_n=20, title=f"Top Coeficientes - {dataset_name}")
+        viz.plot_valores_singulares(singular_values=data["singular_values"], title=f"Valores Singulares - {dataset_name}")
+    
+    def plot_results_comparison(self, results_df: pd.DataFrame) -> None:
+        import src.visualization as viz
+
+        print("[PLOT] Comparação final entre datasets")
+
+        viz.plot_comparacao_metricas(results_df, metric="rmse", title="Comparação de RMSE")
+        viz.plot_comparacao_metricas(results_df, metric="mae", title="Comparação de MAE")
+        viz.plot_comparacao_metricas(results_df, metric="r2", title="Comparação de R²")
+        
