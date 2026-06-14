@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     for fonte in fontes:
         try:
-            print(f"[Execução] Carregando dataset '{fonte["nome"]}'...")
+            print(f"[Execução] Carregando dataset '{fonte['nome']}'...")
 
             df = load_csv(fonte)
             cat_cls.store_dataset(fonte["nome"], df)
