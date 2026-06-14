@@ -1,8 +1,7 @@
 """
 visualization.py
 ----------------
-Responsável pelas visualizações e análise exploratória
-dos dados do experimento da catapulta.
+Responsável pelas visualizações e análise exploratória dos dados do experimento da catapulta.
 """
 
 from __future__ import annotations
