@@ -45,4 +45,13 @@ if __name__ == "__main__":
 
     print("[Execução] Comparação final:")
     print(results_df.sort_values("rmse"))
+
+    for fonte in fontes:
+        try:
+            target_distance = 67
+
+            print(f"[Execução] Encontrando otimização para distância={target_distance} no dataset '{fonte['nome']}'")
+            local_result, global_result = cat_cls.optimize_model(df_name=fonte["nome"], target_distance=67)
+        except Exception as e:
+            print(f"[Erro] Ocorreu uma falha durante a otimização de modelo do dataset '{fonte['nome']}': {e}")
     

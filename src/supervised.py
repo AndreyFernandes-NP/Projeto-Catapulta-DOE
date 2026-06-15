@@ -13,11 +13,13 @@ from typing import Any
 import pandas as pd
 import numpy as np
 import src.visualization as viz
+import src.optimization as opt
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.__config__ import PATHS
+
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.linear_model import LinearRegression
@@ -245,6 +247,56 @@ class Catapulta:
             f"| Parâmetros: {Phi_train.shape[1]} "
             f"| Rank: {rank}.\n"
         )
+    
+    def optimize_model(self, df_name: str, target_distance: float) -> tuple[dict, dict] | dict:
+        print(f"[Otimização] Iniciando otimização do modelo...")
+
+        if df_name not in self.datasets:
+            print(f"[Erro] Não foi possível carregar o dataset '{df_name}', essa função deve ser chamada após o load/store dos datasets.")
+            return {}
+        
+        data = self.datasets_data[df_name]
+        if not data.get("is_adjusted", False):
+            print(f"[Erro] O modelo para '{df_name}' ainda não foi ajustado. Execute primeiro a função adjust_model('{df_name}') antes de rodar.")
+            return {}
+        
+        local_result, global_result = opt.compare_optimization_methods(
+            target_distance=target_distance,
+            scaler=data["scaler"],
+            poly=data["poly"],
+            theta=data["theta"],
+            bounds=opt.BOUNDS,
+        )
+
+        data["optimization"] = {
+            "target_distance": target_distance,
+            "local": local_result,
+            "global": global_result,
+        }
+
+        print(f"[Otimização] Resultado local:")
+        self.print_optimization_result(local_result)
+
+        print(f"[Otimização] Resultado global:")
+        self.print_optimization_result(global_result)
+
+        if self.visualization:
+            opt.plot_2d_cut(
+                target_distance=target_distance,
+                scaler=data["scaler"],
+                poly=data["poly"],
+                theta=data["theta"],
+                bounds=opt.BOUNDS,
+            )
+
+            opt.plot_3d_surface(
+                scaler=data["scaler"],
+                poly=data["poly"],
+                theta=data["theta"],
+                bounds=opt.BOUNDS,
+            )
+        
+        return local_result, global_result
 
     def run_model(self, df_name: str) -> dict:
         print(f"[Execução] Executando modelo...")
@@ -328,4 +380,18 @@ class Catapulta:
         viz.plot_comparacao_metricas(results_df, metric="rmse", title="Comparação de RMSE")
         viz.plot_comparacao_metricas(results_df, metric="mae", title="Comparação de MAE")
         viz.plot_comparacao_metricas(results_df, metric="r2", title="Comparação de R²")
+    
+    def print_optimization_result(self, result: dict):
+        feature_names = self.features
+
+        print(f"             Método: {result['method']}")
+        print(f"             Sucesso: {result['success']}")
+        print(f"             Distância alvo: {result['target_distance']:.4f}")
+        print(f"             Distância prevista: {result['predicted_distance']:.4f}")
+        print(f"             Erro absoluto: {result['absolute_error']:.4f}")
+
+        print("             Configuração encontrada:")
+
+        for name, value in zip(feature_names, result["x"]):
+            print(f"                {name}: {value:.4f}")
         
