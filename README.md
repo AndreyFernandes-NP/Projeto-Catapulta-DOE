@@ -13,7 +13,12 @@ Feito para a matéria de Programação para I.A: Python, da PUC-SP.
 Projeto-Catapulta-DOE/
 ├── data/
 |   ├── catapulta_doe.csv
+|   └── catapulta_doe_ordenado.csv
 ├── notebooks/
+|   ├── EDA_catapulta_doe.ipynb
+|   ├── notebook.ipynb
+|   ├── validation.ipynb
+|   └── visualization.ipynb
 ├── src/
 |   ├── __config__.py
 |   ├── __init__.py
