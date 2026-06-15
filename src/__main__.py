@@ -48,10 +48,10 @@ if __name__ == "__main__":
 
     for fonte in fontes:
         try:
-            target_distance = 67
+            target_distance = 250
 
             print(f"[Execução] Encontrando otimização para distância={target_distance} no dataset '{fonte['nome']}'")
-            local_result, global_result = cat_cls.optimize_model(df_name=fonte["nome"], target_distance=67)
+            local_result, global_result = cat_cls.optimize_model(df_name=fonte["nome"], target_distance=target_distance)
         except Exception as e:
             print(f"[Erro] Ocorreu uma falha durante a otimização de modelo do dataset '{fonte['nome']}': {e}")
     

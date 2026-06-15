@@ -209,7 +209,7 @@ class Catapulta:
             print(f"[Erro] Execução de ajuste interrompida pela ausência dos valores de treinamento 'X' e 'y'.")
             return None
 
-        X_train, X_test, y_train, y_teste = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_teste = train_test_split(X, y, test_size=0.15, random_state=42)
         scaler = StandardScaler()
 
         X_train_scaled = scaler.fit_transform(X_train)
@@ -274,6 +274,13 @@ class Catapulta:
             "global": global_result,
         }
 
+        best_result = min(
+            [local_result, global_result],
+            key=lambda result: result["absolute_error"]
+        )
+
+        fixed_x = np.asarray(best_result["x"], dtype=float)
+
         print(f"[Otimização] Resultado local:")
         self.print_optimization_result(local_result)
 
@@ -287,6 +294,7 @@ class Catapulta:
                 poly=data["poly"],
                 theta=data["theta"],
                 bounds=opt.BOUNDS,
+                fixed_x=fixed_x,
             )
 
             opt.plot_3d_surface(
@@ -294,6 +302,10 @@ class Catapulta:
                 poly=data["poly"],
                 theta=data["theta"],
                 bounds=opt.BOUNDS,
+                fixed_x=fixed_x,
+                highlight_x=local_result["x"],
+                highlight_predicted_distance=local_result["predicted_distance"],
+                target_distance=target_distance
             )
         
         return local_result, global_result
@@ -394,4 +406,35 @@ class Catapulta:
 
         for name, value in zip(feature_names, result["x"]):
             print(f"                {name}: {value:.4f}")
-        
+    
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"target_col={self.target_col!r}, "
+            f"feature_cols={self.features!r}, "
+            f"degree={self.degree}, "
+            f"visualization={self.visualization}, "
+            f"datasets_loaded={len(self.datasets)}, "
+            f"datasets={self.fonts}, "
+            f"datasets_data={self.datasets_data}, "
+            f"model={self.model}"
+            f")"
+    )
+
+    def __str__(self) -> str:
+        dataset_names = list(self.datasets.keys())
+
+        if dataset_names:
+            datasets_text = ", ".join(dataset_names)
+        else:
+            datasets_text = "nenhum dataset carregado"
+
+        return (
+            "PolynomialCurveFitter\n"
+            f"- Diretório de dados: {DATA_DIR}\n"
+            f"- Variável alvo: {self.target_col}\n"
+            f"- Grau polinomial: {self.degree}\n"
+            f"- Visualização: {'ativada' if self.visualization else 'desativada'}\n"
+            f"- Datasets carregados: {len(self.datasets)}\n"
+            f"- Nomes: {datasets_text}"
+        )
